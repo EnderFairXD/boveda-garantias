@@ -1,12 +1,14 @@
+import { AESEncryptionKey, AESSealedData, aesDecryptAsync, aesEncryptAsync } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
-/** La API de archivos nuevos (Directory/File) no está implementada en web: https://docs.expo.dev/versions/latest/sdk/filesystem/ */
-const isFileSystemSupported = Platform.OS !== 'web';
+/** El almacenamiento cifrado depende de Directory/File y SecureStore, que no están
+ * implementados en web: https://docs.expo.dev/versions/latest/sdk/filesystem/ */
+const isNativeStorageSupported = Platform.OS !== 'web';
 
 export interface StoredDocument {
   id: string;
-  imageUri: string;
   storeName: string | null;
   amount: number | null;
   /** Fecha de caducidad/garantía detectada o corregida por el usuario, ISO yyyy-mm-dd. */
@@ -23,7 +25,37 @@ export interface SaveDocumentParams {
   rawText: string;
 }
 
-const INDEX_FILE_NAME = 'index.json';
+const ENCRYPTION_KEY_STORAGE_KEY = 'boveda_garantias_aes_key';
+const INDEX_FILE_NAME = 'index.enc';
+
+/** UTF-8 seguro: btoa/atob solo operan sobre Latin1, y los tickets llevan tildes y "€". */
+function utf8ToBase64(value: string): string {
+  return btoa(unescape(encodeURIComponent(value)));
+}
+
+function base64ToUtf8(value: string): string {
+  return decodeURIComponent(escape(atob(value)));
+}
+
+let cachedKeyPromise: Promise<AESEncryptionKey> | null = null;
+
+/** Clave AES-256 guardada en Keychain (iOS) / Keystore (Android) vía SecureStore.
+ * Se genera una sola vez por instalación; nunca sale del almacén seguro del sistema. */
+function getEncryptionKey(): Promise<AESEncryptionKey> {
+  if (!cachedKeyPromise) {
+    cachedKeyPromise = (async () => {
+      const existing = await SecureStore.getItemAsync(ENCRYPTION_KEY_STORAGE_KEY);
+      if (existing) {
+        return AESEncryptionKey.import(existing, 'hex');
+      }
+      const key = await AESEncryptionKey.generate();
+      const hex = await key.encoded('hex');
+      await SecureStore.setItemAsync(ENCRYPTION_KEY_STORAGE_KEY, hex);
+      return key;
+    })();
+  }
+  return cachedKeyPromise;
+}
 
 function getDocumentsDirectory(): Directory {
   const directory = new Directory(Paths.document, 'boveda-garantias');
@@ -37,19 +69,35 @@ function getIndexFile(): File {
   return new File(getDocumentsDirectory(), INDEX_FILE_NAME);
 }
 
-function readIndex(): StoredDocument[] {
-  if (!isFileSystemSupported) return [];
+function getImageFile(id: string): File {
+  return new File(getDocumentsDirectory(), `${id}.enc`);
+}
+
+async function readIndex(): Promise<StoredDocument[]> {
+  if (!isNativeStorageSupported) return [];
   const file = getIndexFile();
   if (!file.exists) return [];
+
   try {
-    return JSON.parse(file.textSync()) as StoredDocument[];
+    const key = await getEncryptionKey();
+    const combined = await file.bytes();
+    const sealed = AESSealedData.fromCombined(combined);
+    const plaintextBase64 = await aesDecryptAsync(sealed, key, { output: 'base64' });
+    return JSON.parse(base64ToUtf8(plaintextBase64 as string)) as StoredDocument[];
   } catch {
     return [];
   }
 }
 
-function writeIndex(documents: StoredDocument[]): void {
-  getIndexFile().write(JSON.stringify(documents));
+async function writeIndex(documents: StoredDocument[]): Promise<void> {
+  const key = await getEncryptionKey();
+  const plaintextBase64 = utf8ToBase64(JSON.stringify(documents));
+  const sealed = await aesEncryptAsync(plaintextBase64, key);
+  const combined = await sealed.combined();
+
+  const file = getIndexFile();
+  file.create({ overwrite: true });
+  file.write(combined);
 }
 
 function generateDocumentId(): string {
@@ -57,20 +105,24 @@ function generateDocumentId(): string {
 }
 
 export async function saveDocument(params: SaveDocumentParams): Promise<StoredDocument> {
-  if (!isFileSystemSupported) {
+  if (!isNativeStorageSupported) {
     throw new Error('Guardar documentos no está disponible en web, usa la app móvil.');
   }
-  const directory = getDocumentsDirectory();
+
   const id = generateDocumentId();
-  const extension = params.sourceUri.includes('.') ? params.sourceUri.split('.').pop() : 'jpg';
+  const key = await getEncryptionKey();
 
   const sourceFile = new File(params.sourceUri);
-  const destinationFile = new File(directory, `${id}.${extension}`);
-  await sourceFile.copy(destinationFile, { overwrite: true });
+  const imageBytes = await sourceFile.bytes();
+  const sealedImage = await aesEncryptAsync(imageBytes, key);
+  const combinedImage = await sealedImage.combined();
+
+  const imageFile = getImageFile(id);
+  imageFile.create({ overwrite: true });
+  imageFile.write(combinedImage);
 
   const document: StoredDocument = {
     id,
-    imageUri: destinationFile.uri,
     storeName: params.storeName,
     amount: params.amount,
     date: params.date,
@@ -78,28 +130,42 @@ export async function saveDocument(params: SaveDocumentParams): Promise<StoredDo
     createdAt: new Date().toISOString(),
   };
 
-  const documents = readIndex();
+  const documents = await readIndex();
   documents.unshift(document);
-  writeIndex(documents);
+  await writeIndex(documents);
 
   return document;
 }
 
-export function getDocuments(): StoredDocument[] {
+export async function getDocuments(): Promise<StoredDocument[]> {
   return readIndex();
 }
 
-export function getDocument(id: string): StoredDocument | null {
-  return readIndex().find((document) => document.id === id) ?? null;
+export async function getDocument(id: string): Promise<StoredDocument | null> {
+  const documents = await readIndex();
+  return documents.find((document) => document.id === id) ?? null;
 }
 
-export function deleteDocument(id: string): void {
-  const documents = readIndex();
-  const document = documents.find((doc) => doc.id === id);
-  if (!document) return;
+/** Descifra la imagen de un documento y la devuelve como data URI, lista para <Image>. */
+export async function getDocumentImageUri(id: string): Promise<string | null> {
+  if (!isNativeStorageSupported) return null;
 
-  const file = new File(document.imageUri);
-  if (file.exists) file.delete();
+  const file = getImageFile(id);
+  if (!file.exists) return null;
 
-  writeIndex(documents.filter((doc) => doc.id !== id));
+  const key = await getEncryptionKey();
+  const combined = await file.bytes();
+  const sealed = AESSealedData.fromCombined(combined);
+  const base64 = await aesDecryptAsync(sealed, key, { output: 'base64' });
+  return `data:image/jpeg;base64,${base64}`;
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  const documents = await readIndex();
+  if (!documents.some((document) => document.id === id)) return;
+
+  const imageFile = getImageFile(id);
+  if (imageFile.exists) imageFile.delete();
+
+  await writeIndex(documents.filter((document) => document.id !== id));
 }

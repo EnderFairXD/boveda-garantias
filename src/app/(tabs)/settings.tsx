@@ -70,12 +70,12 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="faceid"
             label="Bloqueo con biometría"
-            hint="Próximamente: Face ID / huella para abrir la app"
+            hint="Face ID / huella activados: hay que verificar identidad para abrir la app"
           />
           <SettingsRow
             icon="lock.shield"
             label="Cifrado local"
-            hint="Próximamente: los documentos se guardan cifrados en el dispositivo"
+            hint="Cada documento se cifra con AES-256 antes de guardarse; la clave vive en Keychain/Keystore"
           />
           <SettingsRow
             icon="bell.badge"
