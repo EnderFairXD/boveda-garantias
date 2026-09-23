@@ -1,0 +1,12 @@
+<svg width="600" height="680" viewBox="70 60 460 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <mask id="keyhole" maskUnits="userSpaceOnUse" x="70" y="60" width="460" height="560">
+    <rect x="70" y="60" width="460" height="560" fill="white"/>
+    <circle cx="300" cy="347.784" r="32.3" fill="black"/>
+    <polygon points="285.465,347.784 314.535,347.784 330.685,412.992 269.315,412.992" fill="black"/>
+  </mask>
+  <g mask="url(#keyhole)">
+    <path d="M170.8,318.144 L170.8,253.088 A129.2,129.2 0 0 1 429.2,253.088 L429.2,318.144"
+          fill="none" stroke="white" stroke-width="58.9" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="110" y="294.432" width="380" height="296.4" rx="60.8" fill="white"/>
+  </g>
+</svg>
