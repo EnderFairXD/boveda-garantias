@@ -8,7 +8,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getDocuments, type StoredDocument } from '@/utils/document-store';
+import { getDocumentImageUri, getDocuments, type StoredDocument } from '@/utils/document-store';
+
+type DisplayDocument = StoredDocument & { imageUri: string | null };
 
 const currencyFormatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -39,13 +41,24 @@ function DateBadge({ date }: { date: string | null }) {
   );
 }
 
-function DocumentCard({ document }: { document: StoredDocument }) {
+function DocumentCard({ document }: { document: DisplayDocument }) {
+  const theme = useTheme();
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/document/[id]', params: { id: document.id } })}
       style={({ pressed }) => [pressed && styles.pressed]}>
       <ThemedView type="backgroundElement" style={styles.card}>
-        <Image source={{ uri: document.imageUri }} style={styles.thumbnail} />
+        {document.imageUri ? (
+          <Image source={{ uri: document.imageUri }} style={styles.thumbnail} />
+        ) : (
+          <ThemedView style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+            <SymbolView
+              tintColor={theme.textSecondary}
+              name={{ ios: 'photo', android: 'image', web: 'image' }}
+              size={20}
+            />
+          </ThemedView>
+        )}
         <ThemedView style={styles.cardBody}>
           <ThemedText type="smallBold" numberOfLines={1}>
             {document.storeName ?? 'Sin nombre'}
@@ -62,11 +75,28 @@ function DocumentCard({ document }: { document: StoredDocument }) {
 
 export default function DocumentsScreen() {
   const theme = useTheme();
-  const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const [documents, setDocuments] = useState<DisplayDocument[]>([]);
 
   useFocusEffect(
     useCallback(() => {
-      setDocuments(getDocuments());
+      let ignore = false;
+
+      (async () => {
+        const stored = await getDocuments();
+        // Descifra la miniatura de cada documento; a la escala de una bóveda personal
+        // (decenas de documentos, no miles) es más simple que mantener thumbnails aparte.
+        const withImages = await Promise.all(
+          stored.map(async (document) => ({
+            ...document,
+            imageUri: await getDocumentImageUri(document.id),
+          })),
+        );
+        if (!ignore) setDocuments(withImages);
+      })();
+
+      return () => {
+        ignore = true;
+      };
     }, []),
   );
 
@@ -171,6 +201,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: Spacing.two,
+  },
+  thumbnailPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardBody: {
     flex: 1,

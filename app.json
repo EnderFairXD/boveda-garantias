@@ -10,7 +10,10 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.enderfirexd.bovedagarantias",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Bóveda de Garantías usa Face ID para proteger el acceso a tus documentos."
+      }
     },
     "android": {
       "package": "com.enderfirexd.bovedagarantias",
@@ -42,7 +45,8 @@
           "photosPermission": "Bóveda de Garantías usa tu galería para elegir tickets y documentos ya fotografiados.",
           "cameraPermission": "Bóveda de Garantías usa la cámara para escanear tickets y documentos."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

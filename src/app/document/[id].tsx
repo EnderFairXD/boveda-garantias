@@ -1,12 +1,13 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Alert, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { deleteDocument, getDocument } from '@/utils/document-store';
+import { deleteDocument, getDocument, getDocumentImageUri, type StoredDocument } from '@/utils/document-store';
 
 const currencyFormatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -23,7 +24,29 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export default function DocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const document = getDocument(id);
+  const [loading, setLoading] = useState(true);
+  const [document, setDocument] = useState<StoredDocument | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let ignore = false;
+
+      (async () => {
+        setLoading(true);
+        const [found, uri] = await Promise.all([getDocument(id), getDocumentImageUri(id)]);
+        if (!ignore) {
+          setDocument(found);
+          setImageUri(uri);
+          setLoading(false);
+        }
+      })();
+
+      return () => {
+        ignore = true;
+      };
+    }, [id]),
+  );
 
   const handleDelete = () => {
     Alert.alert('Eliminar documento', '¿Seguro que quieres eliminarlo? No se puede deshacer.', [
@@ -31,13 +54,22 @@ export default function DocumentDetailScreen() {
       {
         text: 'Eliminar',
         style: 'destructive',
-        onPress: () => {
-          deleteDocument(id);
+        onPress: async () => {
+          await deleteDocument(id);
           router.back();
         },
       },
     ]);
   };
+
+  if (loading) {
+    return (
+      <ThemedView style={[styles.container, styles.centered]}>
+        <Stack.Screen options={{ title: 'Documento' }} />
+        <ActivityIndicator />
+      </ThemedView>
+    );
+  }
 
   if (!document) {
     return (
@@ -55,7 +87,7 @@ export default function DocumentDetailScreen() {
       <Stack.Screen options={{ title: document.storeName ?? 'Documento' }} />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content}>
-          <Image source={{ uri: document.imageUri }} style={styles.image} />
+          {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
 
           <ThemedView type="backgroundElement" style={styles.detailsCard}>
             <DetailRow label="Tienda" value={document.storeName ?? 'Sin nombre'} />
@@ -92,6 +124,10 @@ export default function DocumentDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   safeArea: {
     flex: 1,
