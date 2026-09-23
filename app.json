@@ -35,6 +35,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Bóveda de Garantías usa tu galería para elegir tickets y documentos ya fotografiados.",
+          "cameraPermission": "Bóveda de Garantías usa la cámara para escanear tickets y documentos."
+        }
       ]
     ],
     "experiments": {
