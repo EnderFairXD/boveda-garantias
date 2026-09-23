@@ -1,56 +1,38 @@
-# Welcome to your Expo app 👋
+# Bóveda de Garantías
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App móvil (Expo / React Native) para escanear tickets, facturas y documentos con la cámara,
+extraer su texto con OCR y detectar automáticamente tienda, importe y fecha de caducidad o
+garantía, para no perder nunca más un ticket ni olvidar cuándo caduca algo.
 
-## Get started
+## Estado
 
-1. Install dependencies
+Fase de esqueleto: navegación (Expo Router), pantalla de documentos, pantalla de ajustes,
+modal de escaneo (placeholder) y aviso de actualización OTA ya funcionando. OCR, NLP para
+fechas/importes y cifrado local llegan en siguientes iteraciones.
 
-   ```bash
-   npm install
-   ```
+## Stack
 
-2. Start the app
+- [Expo](https://expo.dev) + Expo Router (SDK 57)
+- TypeScript
+- EAS Build / EAS Update para actualizaciones OTA
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Desarrollo
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+```bash
+npx expo lint      # lint
+npx tsc --noEmit    # typecheck
+```
 
-### Other setup steps
+## Publicar una actualización OTA
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npx eas-cli@latest update --branch production --message "..."
+```
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Al abrir la app, si hay una actualización publicada se muestra un aviso para que el usuario
+decida cuándo aplicarla (no se instala en silencio).
