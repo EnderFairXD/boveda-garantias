@@ -6,14 +6,20 @@ garantía, para no perder nunca más un ticket ni olvidar cuándo caduca algo.
 
 ## Estado
 
-Fase de esqueleto: navegación (Expo Router), pantalla de documentos, pantalla de ajustes,
-modal de escaneo (placeholder) y aviso de actualización OTA ya funcionando. OCR, NLP para
-fechas/importes y cifrado local llegan en siguientes iteraciones.
+Navegación (Expo Router), aviso de actualización OTA, escaneo con cámara/galería, OCR
+(`expo-text-extractor`, ML Kit en Android / Vision en iOS), extracción por regex de
+tienda/importe/fecha (`src/utils/parse-receipt.ts`) y guardado local de documentos ya
+funcionando. Cifrado local y bloqueo biométrico llegan en la siguiente iteración.
+
+OCR y guardado de documentos requieren un build de desarrollo (código nativo, no funcionan
+en Expo Go ni en web): `npx expo run:android` / `npx expo run:ios`, o
+`eas build --profile development`.
 
 ## Stack
 
 - [Expo](https://expo.dev) + Expo Router (SDK 57)
 - TypeScript
+- [expo-text-extractor](https://github.com/pchalupa/expo-text-extractor) para OCR (ML Kit / Vision)
 - EAS Build / EAS Update para actualizaciones OTA
 
 ## Desarrollo
