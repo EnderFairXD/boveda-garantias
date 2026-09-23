@@ -8,9 +8,12 @@
     "scheme": "bovedagarantias",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.enderfirexd.bovedagarantias",
+      "supportsTablet": true
     },
     "android": {
+      "package": "com.enderfirexd.bovedagarantias",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,6 +40,19 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "enderfirexd",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "295692ba-a929-4b59-a1c3-f64a1f3f7253"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/295692ba-a929-4b59-a1c3-f64a1f3f7253"
     }
   }
 }
