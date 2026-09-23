@@ -46,24 +46,20 @@
           "cameraPermission": "Bóveda de Garantías usa la cámara para escanear tickets y documentos."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/withApkInstaller",
+      "./plugins/withAndroidReleaseSigning"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "owner": "enderfirexd",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "295692ba-a929-4b59-a1c3-f64a1f3f7253"
       }
-    },
-    "updates": {
-      "url": "https://u.expo.dev/295692ba-a929-4b59-a1c3-f64a1f3f7253"
     }
   }
 }
