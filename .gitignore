@@ -47,3 +47,8 @@ example
 # local build artifacts
 *.apk
 *.aab
+
+# Archivos de herramientas locales
+CLAUDE.md
+AGENTS.md
+.claude/
